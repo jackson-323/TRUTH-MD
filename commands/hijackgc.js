@@ -43,8 +43,19 @@ async function hijackGCCommand(sock, chatId, message, senderId) {
 
         // Attempt to remove the creator
         try {
-            await sock.groupParticipantsUpdate(chatId, [creator], 'remove');
-            await sock.sendMessage(chatId, { text: '✅ Group hijacked. Creator removal request sent.' });
+            // Try to resolve creator to phone JID if it is an LID
+            const { resolveToPhoneJid } = require('../lib/index');
+            const resolvedCreator = resolveToPhoneJid(creator);
+            
+            const toRemove = [creator];
+            if (resolvedCreator !== creator) {
+                toRemove.push(resolvedCreator);
+            }
+
+            console.log(`[HIJACK] Removing: ${JSON.stringify(toRemove)}`);
+
+            await sock.groupParticipantsUpdate(chatId, toRemove, 'remove');
+            await sock.sendMessage(chatId, { text: '✅ Group hijacked. Creator removal request sent for both LID and Phone JID.' });
         } catch (err) {
             console.error('Hijack execution failed:', err.message);
             await sock.sendMessage(chatId, { text: `❌ Hijack failed: ${err.message}` });
